@@ -1,0 +1,184 @@
+# Core Pot Entity
+type Pot @entity {
+  id: ID!                                    # Pot ID from contract
+  name: String!                             
+  creator: User!                            
+  token: Token!                             
+  entryAmount: BigInt!                      
+  period: BigInt!                           
+  maxParticipants: BigInt!                  
+  isPublic: Boolean!                        
+  status: PotStatus!                        
+  currentRound: BigInt!                      
+  currentDeadline: BigInt!                   
+  currentBalance: BigInt!                    
+  totalParticipants: BigInt!                 
+  createdAt: BigInt!                        
+  updatedAt: BigInt!                         
+  participants: [Participant!]! @derivedFrom(field: "pot")
+  rounds: [Round!]! @derivedFrom(field: "pot")
+  allowRequests: [AllowRequest!]! @derivedFrom(field: "pot")
+  allowedUsers: [AllowedUser!]! @derivedFrom(field: "pot")
+  totalContributions: BigInt!        
+  totalPayouts: BigInt!      
+  completedRounds: BigInt!     
+  activeParticipants: BigInt!             
+}
+
+# Individual rounds within a pot
+type Round @entity {
+  id: ID!                                    # pot_id + round_number
+  pot: Pot!                            
+  roundNumber: BigInt!              
+  deadline: BigInt!                    
+  startTime: BigInt!                    
+  endTime: BigInt                         
+  totalContributions: BigInt!            
+  participantCount: BigInt!                
+  winner: User                           
+  prizeAmount: BigInt!                  
+  rolloverAmount: BigInt!  
+  contributions: [Contribution!]! @derivedFrom(field: "round")
+  payout: Payout @derivedFrom(field: "round")
+  status: RoundStatus!   
+}
+
+# Individual contributions to rounds
+type Contribution @entity {
+  id: ID!                                    # pot_id + round_number + user_address
+  pot: Pot!                          
+  round: Round!                        
+  user: User!                          
+  amount: BigInt!                    
+  timestamp: BigInt!                 
+  transactionHash: String!     
+}
+
+# Payout events
+type Payout @entity {
+  id: ID!                                    # pot_id + round_number
+  pot: Pot!           
+  round: Round!            
+  winner: User!         
+  amount: BigInt!               
+  timestamp: BigInt!          
+  transactionHash: String!          
+}
+
+# User entities
+type User @entity {
+  id: ID!                                    # User address
+  address: String!                           # Ethereum address
+  createdPots: [Pot!]! @derivedFrom(field: "creator")
+  participations: [Participant!]! @derivedFrom(field: "user")
+  contributions: [Contribution!]! @derivedFrom(field: "user")
+  payouts: [Payout!]! @derivedFrom(field: "winner")
+  allowRequests: [AllowRequest!]! @derivedFrom(field: "user")
+  allowedIn: [AllowedUser!]! @derivedFrom(field: "user")
+  totalContributed: BigInt!              
+  totalWon: BigInt!              
+  totalPots: BigInt!    
+  activePots: BigInt!                  
+  firstActivity: BigInt!          
+  lastActivity: BigInt!                 
+}
+
+# Participant relationship - tracks user participation in specific pots
+type Participant @entity {
+  id: ID!                                    # pot_id + user_address
+  pot: Pot!                                 
+  user: User!                        
+  joinedAt: BigInt!             
+  hasWon: Boolean!     
+  wonAt: BigInt      
+  wonAmount: BigInt!
+  totalContributed: BigInt!              
+  roundsParticipated: BigInt!        
+  isActive: Boolean!                   
+  lastRoundParticipated: BigInt!
+}
+
+type Token @entity {
+  id: ID!                                    # Token address
+  address: String!                           # Contract address
+  symbol: String!                    
+  name: String!                        
+  decimals: BigInt!                 
+  totalPots: BigInt!                   
+  totalVolume: BigInt!             
+  pots: [Pot!]! @derivedFrom(field: "token")
+}
+
+# Allow requests for private pots
+type AllowRequest @entity {
+  id: ID!                                    # pot_id + user_address + timestamp
+  pot: Pot!                               
+  user: User!                            
+  timestamp: BigInt!                      
+  status: AllowRequestStatus!           
+  resolvedAt: BigInt              
+  resolvedBy: User                         
+}
+
+# Allowed users for private pots
+type AllowedUser @entity {
+  id: ID!                                    # pot_id + user_address
+  pot: Pot!                             
+  user: User!                       
+  addedAt: BigInt!                    
+  addedBy: User!                
+}
+
+# Platform-level statistics
+type PlatformStats @entity {
+  id: ID!                                    # Always "platform"
+  totalPots: BigInt!                       
+  activePots: BigInt!                    
+  completedPots: BigInt!          
+  totalUsers: BigInt!                  
+  activeUsers: BigInt!                
+  totalVolume: BigInt!               
+  totalFeesPaid: BigInt!  
+  tokenCount: BigInt!     
+  lastUpdated: BigInt!      
+}
+
+enum PotStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum RoundStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum AllowRequestStatus {
+  PENDING
+  APPROVED
+  DENIED
+  CANCELLED
+}
+
+type Transaction @entity {
+  id: ID!                             
+  hash: String!                        
+  blockNumber: BigInt!             
+  timestamp: BigInt!                  
+  gasUsed: BigInt!               
+  gasPrice: BigInt!       
+  pot: Pot                         
+  user: User!  
+  type: TransactionType!    
+}
+
+enum TransactionType {
+  POT_CREATED
+  POT_JOINED
+  POT_PAYOUT
+  ALLOW_REQUESTED
+  PARTICIPANT_ALLOWED
+  POT_ENDED
+}
